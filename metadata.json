@@ -1,0 +1,7 @@
+{
+  "name": "backup do app adgenius ",
+  "description": "AdGenius - Eleve sua visão à realidade. Estúdio Criativo de IA Premium para imagens e vídeos de alta conversão.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
