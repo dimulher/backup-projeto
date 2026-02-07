@@ -38,7 +38,7 @@ export const CREDIT_COSTS = {
 };
 
 export const PACKAGES = [
-  { id: 'p1', name: 'Pacote Lite', credits: 500, price: 35.00, unitPrice: 'R$ 7,00 por 100 créditos' },
-  { id: 'p2', name: 'Pacote Popular', credits: 1000, price: 60.00, popular: true, unitPrice: 'R$ 6,00 por 100 créditos' },
-  { id: 'p3', name: 'Estúdio Pro', credits: 2000, price: 110.00, unitPrice: 'R$ 5,50 por 100 créditos' },
+  { id: 'p1', name: 'Pacote Lite', credits: 500, price: 37.00, unitPrice: 'R$ 7,40 por 100 créditos', priceId: 'price_1SxyCHJGlMGDBDQlhXbYLX07' },
+  { id: 'p2', name: 'Pacote Popular', credits: 1000, price: 67.00, popular: true, unitPrice: 'R$ 6,70 por 100 créditos', priceId: 'price_1SxyCHJGlMGDBDQltjoyQ0AW' },
+  { id: 'p3', name: 'Estúdio Pro', credits: 2000, price: 97.00, unitPrice: 'R$ 4,85 por 100 créditos', priceId: 'price_1SxyCHJGlMGDBDQlmlkGTOa8' },
 ];

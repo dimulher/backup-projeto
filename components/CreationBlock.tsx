@@ -779,8 +779,8 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
 
     const shouldShowSlot2 = type !== CreationType.IMAGE_TO_VIDEO && type !== CreationType.AVATAR && type !== CreationType.FACE_TO_VIDEO && type !== CreationType.PROFESSIONAL_PHOTO;
     const shouldShowSlot1 = type !== CreationType.AVATAR;
-    // Reference slot is generally available for image generation tasks
-    const shouldShowReference = (type === CreationType.IMAGE || type === CreationType.CREATIVE_MODEL);
+    // Reference slot is generally available for image generation tasks and now professional photo, image-to-video, face-to-video AND standard video
+    const shouldShowReference = (type === CreationType.IMAGE || type === CreationType.CREATIVE_MODEL || type === CreationType.PROFESSIONAL_PHOTO || type === CreationType.IMAGE_TO_VIDEO || type === CreationType.FACE_TO_VIDEO || type === CreationType.VIDEO);
 
     const getImageAspectOptions = () => [
         { value: '1:1', label: '1:1' },
@@ -836,6 +836,7 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
                 ref={elementRef}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
+                onWheel={(e) => e.stopPropagation()} // Prevent zoom when scrolling inside block
                 style={{
                     transform: `translate(${position.x * scale}px, ${position.y * scale}px) scale(${scale})`,
                     transformOrigin: '0 0',

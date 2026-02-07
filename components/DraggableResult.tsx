@@ -23,15 +23,15 @@ const DraggableResult: React.FC<DraggableResultProps> = ({ item, onDelete, onUpd
 
   // Helper to determine if item is video (Strictly MP4 output)
   const isVideo = [
-    CreationType.VIDEO, 
-    CreationType.IMAGE_TO_VIDEO, 
-    CreationType.MIMIC, 
+    CreationType.VIDEO,
+    CreationType.IMAGE_TO_VIDEO,
+    CreationType.MIMIC,
     CreationType.FACE_TO_VIDEO
   ].includes(item.type);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('.no-drag')) return;
-    
+
     e.stopPropagation();
     e.preventDefault();
 
@@ -52,7 +52,7 @@ const DraggableResult: React.FC<DraggableResultProps> = ({ item, onDelete, onUpd
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!dragInfo.current.isDragging || !elementRef.current) return;
-    
+
     e.stopPropagation();
     e.preventDefault();
 
@@ -70,14 +70,14 @@ const DraggableResult: React.FC<DraggableResultProps> = ({ item, onDelete, onUpd
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (!dragInfo.current.isDragging) return;
-    
+
     e.stopPropagation();
     e.preventDefault();
 
     if (elementRef.current) {
-        elementRef.current.releasePointerCapture(e.pointerId);
+      elementRef.current.releasePointerCapture(e.pointerId);
     }
-    
+
     setIsDraggingVisual(false);
     dragInfo.current.isDragging = false;
 
@@ -88,7 +88,7 @@ const DraggableResult: React.FC<DraggableResultProps> = ({ item, onDelete, onUpd
     const finalY = dragInfo.current.initialY + deltaY;
 
     if (!isNaN(finalX) && !isNaN(finalY)) {
-        onUpdatePosition(item.id, finalX, finalY);
+      onUpdatePosition(item.id, finalX, finalY);
     }
   };
 
@@ -102,7 +102,7 @@ const DraggableResult: React.FC<DraggableResultProps> = ({ item, onDelete, onUpd
       const blob = await response.blob();
       const newBlob = new Blob([blob], { type: mimeType });
       const objectUrl = URL.createObjectURL(newBlob);
-      
+
       const link = document.createElement('a');
       link.href = objectUrl;
       link.download = filename;
@@ -127,25 +127,26 @@ const DraggableResult: React.FC<DraggableResultProps> = ({ item, onDelete, onUpd
       ref={elementRef}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onWheel={(e) => e.stopPropagation()} // Prevent zoom when scrolling inside result card
       // PREMIUM ZOOM: We apply the scale here on the individual block, preventing blurry texture scaling
-      style={{ 
-          transform: `translate(${currentX * scale}px, ${currentY * scale}px) scale(${scale})`,
-          transformOrigin: '0 0',
-          touchAction: 'none'
+      style={{
+        transform: `translate(${currentX * scale}px, ${currentY * scale}px) scale(${scale})`,
+        transformOrigin: '0 0',
+        touchAction: 'none'
       }}
       className={`stop-pan absolute top-0 left-0 z-20 group transition-shadow duration-300 sharp-render ${isDraggingVisual ? 'scale-[1.02] z-50 shadow-2xl' : 'shadow-xl'} animate-in fade-in slide-in-from-left-8`}
     >
       <div className="bg-[#F8FAFC] dark:bg-[#0f172a]/95 border border-slate-200 dark:border-[#1e293b] rounded-[1.5rem] overflow-hidden w-[320px] backdrop-blur-xl flex flex-col shadow-2xl relative">
-        
+
         {/* Header - NOW DRAGGABLE HANDLE */}
-        <div 
-            onPointerDown={handlePointerDown}
-            className={`px-5 py-3 flex justify-between items-center bg-slate-50/80 dark:bg-[#1e293b]/60 border-b border-slate-200 dark:border-white/5 transition-colors ${isDraggingVisual ? 'cursor-grabbing' : 'cursor-grab hover:bg-slate-100 dark:hover:bg-white/5'}`}
+        <div
+          onPointerDown={handlePointerDown}
+          className={`px-5 py-3 flex justify-between items-center bg-slate-50/80 dark:bg-[#1e293b]/60 border-b border-slate-200 dark:border-white/5 transition-colors ${isDraggingVisual ? 'cursor-grabbing' : 'cursor-grab hover:bg-slate-100 dark:hover:bg-white/5'}`}
         >
           <div className="flex items-center gap-2 pointer-events-none">
             <span className={`w-2 h-2 rounded-full ${!isVideo ? 'bg-indigo-500' : 'bg-purple-500'}`}></span>
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-300">
-              {isVideo ? 'Vídeo' : 'Asset'}
+              {isVideo ? 'Vídeo' : 'Resultado'}
             </span>
           </div>
           <div className="flex items-center gap-2 no-drag">
@@ -166,20 +167,20 @@ const DraggableResult: React.FC<DraggableResultProps> = ({ item, onDelete, onUpd
             <video src={item.url} className="w-full h-full object-contain" controls={false} playsInline autoPlay muted loop />
           )}
           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center">
-              <span className="text-white text-xs font-bold uppercase tracking-widest border border-white/30 px-3 py-1 rounded-full backdrop-blur-md">Visualizar</span>
+            <span className="text-white text-xs font-bold uppercase tracking-widest border border-white/30 px-3 py-1 rounded-full backdrop-blur-md">Visualizar</span>
           </div>
         </div>
-        
+
         {/* Footer */}
         <div className="p-4 grid grid-cols-2 gap-3 no-drag bg-white dark:bg-[#0f172a] border-t border-slate-100 dark:border-white/5 cursor-default">
-            <button onClick={handleDownload} className="flex items-center justify-center gap-2 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white rounded-xl text-[10px] font-black uppercase tracking-wide transition-colors border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-500">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              {isVideo ? 'Baixar' : 'Baixar'}
-            </button>
-            <div className="flex items-center justify-center gap-2 py-3 bg-green-500/10 text-green-600 dark:text-green-500 rounded-xl text-[10px] font-black uppercase tracking-wide border border-green-500/20 cursor-default">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                Salvo
-            </div>
+          <button onClick={handleDownload} className="flex items-center justify-center gap-2 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white rounded-xl text-[10px] font-black uppercase tracking-wide transition-colors border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-500">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            {isVideo ? 'Baixar' : 'Baixar'}
+          </button>
+          <div className="flex items-center justify-center gap-2 py-3 bg-green-500/10 text-green-600 dark:text-green-500 rounded-xl text-[10px] font-black uppercase tracking-wide border border-green-500/20 cursor-default">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            Salvo
+          </div>
         </div>
       </div>
     </div>
@@ -187,9 +188,9 @@ const DraggableResult: React.FC<DraggableResultProps> = ({ item, onDelete, onUpd
 };
 
 export default React.memo(DraggableResult, (prev, next) => {
-  return prev.item.id === next.item.id && 
-         prev.item.position?.x === next.item.position?.x && 
-         prev.item.position?.y === next.item.position?.y &&
-         prev.item.url === next.item.url &&
-         prev.scale === next.scale;
+  return prev.item.id === next.item.id &&
+    prev.item.position?.x === next.item.position?.x &&
+    prev.item.position?.y === next.item.position?.y &&
+    prev.item.url === next.item.url &&
+    prev.scale === next.scale;
 });
