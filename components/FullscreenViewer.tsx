@@ -48,7 +48,9 @@ const FullscreenViewer: React.FC<FullscreenViewerProps> = ({ item, onClose }) =>
     if (item.type === CreationType.IMAGE || item.type === CreationType.CREATIVE_MODEL) {
        return (CREDIT_COSTS.IMAGE as any)[item.quality || Quality.K1];
     }
-    if (item.type === CreationType.AVATAR) return CREDIT_COSTS.AVATAR;
+    if (item.type === CreationType.AVATAR) {
+       return (CREDIT_COSTS.AVATAR as any)[item.quality || Quality.K1];
+    }
     if (item.type === CreationType.VIDEO) return CREDIT_COSTS.VIDEO;
     if (item.type === CreationType.IMAGE_TO_VIDEO) return CREDIT_COSTS.IMAGE_TO_VIDEO;
     if (item.type === CreationType.FACE_TO_VIDEO) return CREDIT_COSTS.FACE_TO_VIDEO;

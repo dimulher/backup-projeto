@@ -4,9 +4,6 @@ import { createPortal } from 'react-dom';
 import { CreationType, AspectRatio, Quality, EditorBlockData, VideoDuration, VideoResolution, ReferenceRole, ExtraReference, CreationItem, ImageFormat } from '../types';
 import { CREDIT_COSTS, FEATURE_FLAGS } from '../constants';
 import { enhancePrompt, generateImage, generateVideo, fileStorage } from '../services/geminiService';
-import { getCurrentUser } from '../services/authService';
-import { deductCredits as deductSupabaseCredits } from '../services/creditsService';
-import { createGeneration, updateGenerationResult } from '../services/generationsService';
 import { ErrorBoundary } from './ErrorBoundary';
 
 interface CreationBlockProps {
@@ -31,12 +28,6 @@ const optimizeImageForPreview = async (file: File): Promise<string> => {
     const MAX_WIDTH = 600;
     const QUALITY = 0.7;
 
-    console.log(`🔧 [optimizeImageForPreview] Iniciando otimização:`, {
-        fileName: file.name,
-        fileSize: `${(file.size / 1024).toFixed(2)} KB`,
-        fileType: file.type
-    });
-
     return new Promise((resolve, reject) => {
         const img = new Image();
         const url = URL.createObjectURL(file);
@@ -44,26 +35,18 @@ const optimizeImageForPreview = async (file: File): Promise<string> => {
             URL.revokeObjectURL(url);
             let width = img.width;
             let height = img.height;
-
-            console.log(`📏 [optimizeImageForPreview] Dimensões originais: ${width}x${height}`);
-
             if (width > height) {
                 if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; }
             } else {
                 if (height > MAX_WIDTH) { width = Math.round((width * MAX_WIDTH) / height); height = MAX_WIDTH; }
             }
-
-            console.log(`📏 [optimizeImageForPreview] Dimensões otimizadas: ${width}x${height}`);
-
             const canvas = document.createElement('canvas');
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             if (ctx) {
                 ctx.drawImage(img, 0, 0, width, height);
-                const dataUrl = canvas.toDataURL('image/jpeg', QUALITY);
-                console.log(`✅ [optimizeImageForPreview] Concluído - dataUrl size: ${(dataUrl.length / 1024).toFixed(2)} KB`);
-                resolve(dataUrl);
+                resolve(canvas.toDataURL('image/jpeg', QUALITY));
             } else {
                 reject(new Error("Canvas error"));
             }
@@ -316,7 +299,10 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
     if (type === CreationType.IMAGE || type === CreationType.CREATIVE_MODEL || type === CreationType.PROFESSIONAL_PHOTO) {
         cost = (CREDIT_COSTS.IMAGE as any)[quality];
     }
-    else if (type === CreationType.AVATAR) cost = CREDIT_COSTS.AVATAR;
+    else if (type === CreationType.AVATAR) {
+        // Dynamic Avatar Cost
+        cost = (CREDIT_COSTS.AVATAR as any)[quality];
+    }
     else if (type === CreationType.MIMIC) {
         // Dynamic Cost for Mimic: Based on Resolution and Duration
         const mimicTable = CREDIT_COSTS.MIMIC as any;
@@ -419,57 +405,26 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
             // Processing
             if (isVideo) {
                 if (file.size > 20 * 1024 * 1024) throw new Error("Vídeo muito grande (Max 20MB).");
-
-                // Salvar arquivo original no fileStorage
                 await fileStorage.saveFile(fileId, file);
-
-                // Gerar thumbnail para PREVIEW VISUAL (não para upload!)
                 const thumb = await generateVideoThumbnail(file);
 
-                // CRÍTICO: Criar Blob URL do ORIGINAL para upload
-                const videoBlobURL = URL.createObjectURL(file);
-                console.log(`📹 Vídeo processado - fileId: ${fileId}, size: ${(file.size / 1024).toFixed(2)} KB, type: ${file.type}`);
-                console.log(`🖼️ Thumbnail criada para preview visual`);
-                console.log(`🔗 Blob URL criada: ${videoBlobURL}`);
-
                 if (slot === 'main') {
-                    setMainId(fileId);
-                    setMainPreview(videoBlobURL); // BLOB URL DO VÍDEO COMPLETO
-                    setMainType('video');
+                    setMainId(fileId); setMainPreview(thumb); setMainType('video');
                 } else if (slot === 'style') {
-                    setStyleId(fileId);
-                    setStylePreview(videoBlobURL); // BLOB URL DO VÍDEO COMPLETO
-                    setStyleType('video');
+                    setStyleId(fileId); setStylePreview(thumb); setStyleType('video');
                 } else if (slot === 'reference') {
-                    setReferenceId(fileId);
-                    setReferencePreview(videoBlobURL); // BLOB URL DO VÍDEO COMPLETO
-                    setReferenceType('video');
+                    setReferenceId(fileId); setReferencePreview(thumb); setReferenceType('video');
                 }
-
-                // TODO: Usar 'thumb' para exibir thumbnail na UI (não implementado ainda)
             } else if (isImage) {
                 if (file.size > 10 * 1024 * 1024) throw new Error("Imagem muito grande (Max 10MB).");
-
-                // Log do arquivo original antes de otimizar
-                console.log(`🖼️ Processando imagem original:`, {
-                    name: file.name,
-                    size: `${(file.size / 1024).toFixed(2)} KB`,
-                    type: file.type,
-                    lastModified: new Date(file.lastModified).toISOString()
-                });
-
                 const preview = await optimizeImageForPreview(file);
-                console.log(`✅ Imagem otimizada - preview size: ${(preview.length / 1024).toFixed(2)} KB`);
 
                 if (slot === 'main') {
                     setMainId(null); setMainPreview(preview); setMainType('image');
-                    console.log(`📍 Imagem definida como MAIN preview`);
                 } else if (slot === 'style') {
                     setStyleId(null); setStylePreview(preview); setStyleType('image');
-                    console.log(`📍 Imagem definida como STYLE preview`);
                 } else if (slot === 'reference') {
                     setReferenceId(null); setReferencePreview(preview); setReferenceType('image');
-                    console.log(`📍 Imagem definida como REFERENCE preview`);
                 } else if (slot === 'extra') {
                     await fileStorage.saveFile(fileId, file);
                     const newRef: ExtraReference = {
@@ -657,8 +612,8 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
                         aspectRatio,
                         quality,
                         type,
-                        mainPreview || undefined,
-                        stylePreview || undefined,
+                        type === CreationType.IMAGE ? undefined : (mainPreview || undefined),
+                        type === CreationType.IMAGE ? undefined : (stylePreview || undefined),
                         extraRefs,
                         format,
                         referencePreview || undefined,
@@ -676,6 +631,8 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
                         mainId || undefined,
                         styleId || undefined,
                         stylePreview || undefined,
+                        referencePreview || undefined,
+                        referenceRole,
                         onRetryStatus // Pass the retry callback
                     );
                 }
@@ -706,38 +663,13 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
             }
 
             // CRITICAL: Deduct credits ONLY if we have a success result URL AND passed validation
-
-            // Obter usuário autenticado do Supabase
-            const user = await getCurrentUser();
-            if (!user) {
-                throw new Error('Você precisa estar autenticado para gerar criativos.');
+            if (deductCredits(cost)) {
+                onGenerated(type, resultUrl, prompt, { quality, aspectRatio });
+                onUpdate(id, { lastGeneratedUrl: resultUrl });
+            } else {
+                // Should not happen if validation passed, but safety check
+                throw new Error("Erro ao debitar créditos.");
             }
-
-            // 1. CRIAR REGISTRO NO BANCO ANTES DE PROCESSAR
-            console.log(`📝 Criando registro de geração no banco...`);
-            const generationId = await createGeneration(user.id, type, prompt, cost);
-            if (!generationId) {
-                throw new Error('Erro ao criar registro de geração no banco.');
-            }
-            console.log(`✅ Geração criada no banco: ${generationId}`);
-
-            // 2. DEDUZIR CRÉDITOS DO SUPABASE
-            console.log(`💳 Deduzindo ${cost} créditos do usuário ${user.id}...`);
-            const creditDeducted = await deductSupabaseCredits(user.id, cost);
-
-            if (!creditDeducted) {
-                throw new Error("Erro ao debitar créditos do Supabase.");
-            }
-            console.log('✅ Créditos deduzidos com sucesso!');
-
-            // 3. ATUALIZAR REGISTRO COM URL DO RESULTADO
-            console.log(`📝 Atualizando registro ${generationId} com URL do resultado...`);
-            await updateGenerationResult(generationId, resultUrl);
-            console.log('✅ Registro atualizado com sucesso!');
-
-            // 4. ATUALIZAR UI
-            onGenerated(type, resultUrl, prompt, { quality, aspectRatio });
-            onUpdate(id, { lastGeneratedUrl: resultUrl });
 
         } catch (err: any) {
             console.error(`[Block ${id}] ERROR:`, err);
@@ -777,8 +709,8 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
         return 'image/*';
     };
 
-    const shouldShowSlot2 = type !== CreationType.IMAGE_TO_VIDEO && type !== CreationType.AVATAR && type !== CreationType.FACE_TO_VIDEO && type !== CreationType.PROFESSIONAL_PHOTO;
-    const shouldShowSlot1 = type !== CreationType.AVATAR;
+    const shouldShowSlot2 = type !== CreationType.IMAGE_TO_VIDEO && type !== CreationType.AVATAR && type !== CreationType.FACE_TO_VIDEO && type !== CreationType.PROFESSIONAL_PHOTO && type !== CreationType.IMAGE;
+    const shouldShowSlot1 = type !== CreationType.AVATAR && type !== CreationType.IMAGE;
     // Reference slot is generally available for image generation tasks and now professional photo, image-to-video, face-to-video AND standard video
     const shouldShowReference = (type === CreationType.IMAGE || type === CreationType.CREATIVE_MODEL || type === CreationType.PROFESSIONAL_PHOTO || type === CreationType.IMAGE_TO_VIDEO || type === CreationType.FACE_TO_VIDEO || type === CreationType.VIDEO);
 
@@ -1369,7 +1301,7 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
                                             </div>
                                             <div className="text-left">
                                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover/upload-ref:text-cyan-400 transition-colors">Adicionar Modelo</p>
-                                                <p className="text-[8px] text-slate-400 opacity-70">PNG, JPG</p>
+                                                <p className="text-center text-[8px] text-slate-400 mt-1 opacity-70">PNG, JPG</p>
                                             </div>
                                         </div>
                                     )}

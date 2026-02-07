@@ -11,34 +11,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Signup specific fields
   const [name, setName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  // Login com Google
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await signInWithGoogle();
-
-      if (!result.success) {
-        setError(result.error || 'Erro ao fazer login com Google');
-      }
-      // O redirecionamento será automático após o OAuth
-    } catch (err: any) {
-      setError(err.message || 'Erro ao conectar com Google');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -63,8 +44,29 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       }
     }
 
-    // Success
-    onLogin(email, name);
+    setIsLoading(true);
+    // Simulate API call or actual login
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Fake delay
+      onLogin(email, name);
+    } catch (err) {
+      setError("Erro ao realizar login. Tente novamente.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setIsLoading(true);
+      await signInWithGoogle();
+      // Assuming signInWithGoogle handles the auth flow
+    } catch (err) {
+      console.error("Google login error:", err);
+      setError("Erro ao conectar com Google.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const toggleMode = () => {

@@ -26,8 +26,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, user, cred
       )
     }] : []),
     {
-      id: View.LIBRARY, label: 'Criativos Prontos', icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+      id: View.LIBRARY,
+      label: 'Criativos Prontos',
+      disabled: true,
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
       )
     },
     {
@@ -74,17 +77,36 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, user, cred
         {menuItems.map((item) => (
           <button
             key={item.id}
-            onClick={() => onViewChange(item.id)}
-            className={`w-full flex items-center gap-4 p-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${currentView === item.id
-              ? 'bg-white/10 text-white shadow-sm border border-white/5'
-              : 'text-slate-400 hover:bg-white/5 hover:text-white'
+            onClick={() => !item.disabled && onViewChange(item.id)}
+            disabled={item.disabled}
+            className={`w-full flex items-center gap-4 p-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${item.disabled
+                ? 'opacity-40 cursor-not-allowed bg-transparent text-slate-500'
+                : currentView === item.id
+                  ? 'bg-white/10 text-white shadow-sm border border-white/5'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`}
           >
-            {currentView === item.id && (
+            {/* Active Indicator */}
+            {!item.disabled && currentView === item.id && (
               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.6)]"></div>
             )}
-            <div className={`flex-shrink-0 transition-transform duration-300 ${currentView === item.id ? 'scale-110 text-indigo-400' : ''}`}>{item.icon}</div>
-            {isExpanded && <span className="font-medium text-sm whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300">{item.label}</span>}
+
+            {/* Icon */}
+            <div className={`flex-shrink-0 transition-transform duration-300 ${!item.disabled && currentView === item.id ? 'scale-110 text-indigo-400' : ''}`}>
+              {item.icon}
+            </div>
+
+            {/* Label and Badge */}
+            {isExpanded && (
+              <div className="flex items-center justify-between w-full animate-in fade-in slide-in-from-left-2 duration-300">
+                <span className="font-medium text-sm whitespace-nowrap">{item.label}</span>
+                {item.disabled && (
+                  <span className="text-[9px] font-bold uppercase tracking-wide bg-slate-800 text-slate-400 px-2 py-0.5 rounded-md border border-white/5 ml-2 whitespace-nowrap">
+                    Em breve
+                  </span>
+                )}
+              </div>
+            )}
           </button>
         ))}
       </nav>
