@@ -59,13 +59,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         // but typically App.tsx should listen to auth state.
         // For now, we assume App.tsx will detect the session change.
       } else {
-        const { success, error } = await signUpWithEmail(email, password, name);
+        const { success, data, error } = await signUpWithEmail(email, password, name);
         if (!success) {
           throw new Error(error || "Falha no cadastro");
         }
-        // If signup requires email confirmation, we should alert the user
-        // But for now, let's assume it might auto-login or ask for confirmation
-        alert("Conta criada! Verifique se você já está logado ou verifique seu e-mail.");
+
+        // Check if session was created immediately (meaning no email confirmation required)
+        if (data?.session) {
+          // User is logged in, no need for alert, just proceed to onLogin
+        } else {
+          // Session is null, meaning email confirmation is required
+          alert("Conta criada! Verifique seu e-mail para confirmar a conta.");
+        }
       }
 
       // We don't necessarily need to call onLogin(email, name) if App.tsx uses onAuthStateChange
@@ -77,8 +82,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       console.error("Auth error:", err);
       if (err.message.includes("Invalid login credentials")) {
         setError("E-mail ou senha incorretos.");
-      } else if (err.message.includes("User already registered")) {
+      } else if (err.message.includes("User already registered") || err.message.includes("ESPIRIT_USER_ALREADY_REGISTERED")) {
         setError("Este e-mail já está cadastrado.");
+      } else if (err.message.includes("rate limit exceeded")) {
+        setError("Limite de tentativas excedido. Por favor, aguarde alguns minutos antes de tentar novamente.");
       } else {
         setError(err.message || "Erro ao realizar operação. Tente novamente.");
       }

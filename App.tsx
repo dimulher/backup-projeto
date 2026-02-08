@@ -214,6 +214,12 @@ const App: React.FC = () => {
           setCredits(0);
           creditsRef.current = 0;
           setItems([]); // Limpar itens ao deslogar
+          setEditorBlocks([]); // Limpar blocos
+          setActiveLayerId(null); // Limpar layer ativa
+          setEditorHistoryIds([]); // Limpar histórico
+          setFolders([]); // Limpar pastas
+          setPurchaseHistory([]); // Limpar histórico de compras
+          setPresets([]); // Limpar presets
           if (creditsUnsubscribe) creditsUnsubscribe();
         }
       });
