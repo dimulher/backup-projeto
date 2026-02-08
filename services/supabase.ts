@@ -19,7 +19,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // Helper para verificar conexão
 export const testSupabaseConnection = async () => {
     try {
-        const { data, error } = await supabase.from('users').select('count').limit(1);
+        const { data, error } = await supabase.from('profiles').select('count').limit(1);
         if (error) throw error;
         console.log('✅ Conexão com Supabase estabelecida com sucesso!');
         return true;
@@ -34,8 +34,7 @@ export interface User {
     id: string;
     email: string;
     credits: number;
-    created_at?: string;
-    updated_at?: string;
+    full_name?: string;
 }
 
 export interface Generation {

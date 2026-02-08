@@ -10,7 +10,7 @@ import type { User } from './supabase';
 export const getUserCredits = async (userId: string): Promise<number> => {
     try {
         const { data, error } = await supabase
-            .from('users')
+            .from('profiles')
             .select('credits')
             .eq('id', userId)
             .single();
@@ -36,10 +36,10 @@ export const deductCredits = async (userId: string, amount: number): Promise<boo
 
         // Deduz os créditos
         const { error } = await supabase
-            .from('users')
+            .from('profiles')
             .update({
-                credits: currentCredits - amount,
-                updated_at: new Date().toISOString()
+                credits: currentCredits - amount
+                // profiles doesn't have updated_at by default usually, removing it for now or check schema
             })
             .eq('id', userId);
 
@@ -59,10 +59,9 @@ export const addCredits = async (userId: string, amount: number): Promise<boolea
         const currentCredits = await getUserCredits(userId);
 
         const { error } = await supabase
-            .from('users')
+            .from('profiles')
             .update({
-                credits: currentCredits + amount,
-                updated_at: new Date().toISOString()
+                credits: currentCredits + amount
             })
             .eq('id', userId);
 
@@ -85,12 +84,12 @@ export const subscribeToCredits = (userId: string, callback: (credits: number) =
             {
                 event: 'UPDATE',
                 schema: 'public',
-                table: 'users',
+                table: 'profiles',
                 filter: `id=eq.${userId}`,
             },
             (payload) => {
                 console.log('Credits updated:', payload);
-                const newCredits = (payload.new as User).credits;
+                const newCredits = (payload.new as any).credits;
                 callback(newCredits);
             }
         )
@@ -103,11 +102,12 @@ export const subscribeToCredits = (userId: string, callback: (credits: number) =
 };
 
 // Criar usuário inicial com créditos (usado após primeiro login)
+// DEPRECATED: profiles is handled by trigger, but we keep this as fallback or update it to use profiles
 export const createUserIfNotExists = async (userId: string, email: string): Promise<boolean> => {
     try {
         // Verifica se usuário já existe
         const { data: existingUser } = await supabase
-            .from('users')
+            .from('profiles')
             .select('id')
             .eq('id', userId)
             .single();
@@ -117,15 +117,14 @@ export const createUserIfNotExists = async (userId: string, email: string): Prom
             return true;
         }
 
-        // Cria novo usuário com 100 créditos iniciais
+        // Cria novo usuário com 100 créditos iniciais se não existir
         const { error } = await supabase
-            .from('users')
+            .from('profiles')
             .insert({
                 id: userId,
                 email: email,
                 credits: 100,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                full_name: email.split('@')[0]
             });
 
         if (error) throw error;
