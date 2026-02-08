@@ -269,6 +269,7 @@ export const generateImage = async (...args: any[]): Promise<string> => {
     referencePreview: referencePublicUrl,
     referenceRole,
     extraRefs: uploadedExtraRefs,
+    userId, // Adicionado userId
     timestamp: new Date().toISOString()
   };
 
@@ -442,6 +443,7 @@ export const generateVideo = async (...args: any[]): Promise<string> => {
     styleId,
     stylePreview: stylePublicUrl,
     extraRefs: uploadedExtraRefs,
+    userId, // Adicionado userId
     timestamp: new Date().toISOString()
   };
 
