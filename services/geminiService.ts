@@ -186,7 +186,7 @@ export const generateImage = async (...args: any[]): Promise<string> => {
 
   if (mainPreview && (mainPreview.startsWith('data:') || mainPreview.startsWith('blob:'))) {
     try {
-      const ext = getFileExtensionFromDataUrl(mainPreview);
+      const ext = getFileExtensionFromDataUrl(mainPreview, 'jpg'); // DEFAULT JPG PARA IMAGENS
       console.log(`📤 Uploading mainPreview como .${ext}...`);
 
       const uploadedUrl = await uploadFromDataUrl(mainPreview, userId, `main_${Date.now()}.${ext}`);
@@ -205,7 +205,7 @@ export const generateImage = async (...args: any[]): Promise<string> => {
 
   if (stylePreview && (stylePreview.startsWith('data:') || stylePreview.startsWith('blob:'))) {
     try {
-      const ext = getFileExtensionFromDataUrl(stylePreview);
+      const ext = getFileExtensionFromDataUrl(stylePreview, 'jpg'); // DEFAULT JPG
       console.log(`📤 Uploading stylePreview como .${ext}...`);
 
       const uploadedUrl = await uploadFromDataUrl(stylePreview, userId, `style_${Date.now()}.${ext}`);
@@ -224,7 +224,7 @@ export const generateImage = async (...args: any[]): Promise<string> => {
 
   if (referencePreview && (referencePreview.startsWith('data:') || referencePreview.startsWith('blob:'))) {
     try {
-      const ext = getFileExtensionFromDataUrl(referencePreview);
+      const ext = getFileExtensionFromDataUrl(referencePreview, 'jpg'); // DEFAULT JPG
       console.log(`📤 Uploading referencePreview como .${ext}...`);
 
       const uploadedUrl = await uploadFromDataUrl(referencePreview, userId, `reference_${Date.now()}.${ext}`);
@@ -246,7 +246,7 @@ export const generateImage = async (...args: any[]): Promise<string> => {
     (extraRefs || []).map(async (ref: any) => {
       if (ref.preview && (ref.preview.startsWith('data:') || ref.preview.startsWith('blob:'))) {
         try {
-          const ext = getFileExtensionFromDataUrl(ref.preview);
+          const ext = getFileExtensionFromDataUrl(ref.preview, 'jpg'); // DEFAULT JPG
           const publicUrl = await uploadFromDataUrl(ref.preview, userId, `extra_${Date.now()}.${ext}`);
           return { ...ref, preview: publicUrl || ref.preview };
         } catch (error) {
@@ -305,7 +305,7 @@ export const generateImage = async (...args: any[]): Promise<string> => {
 };
 
 // Helper: Detectar extensão correta baseada no MIME type da string data/blob
-const getFileExtensionFromDataUrl = (dataUrl: string): string => {
+const getFileExtensionFromDataUrl = (dataUrl: string, defaultExt: string = 'mp4'): string => {
   if (!dataUrl) return 'bin';
 
   // Se for data URL, extrair MIME type do cabeçalho
@@ -328,9 +328,9 @@ const getFileExtensionFromDataUrl = (dataUrl: string): string => {
     }
   }
 
-  // Se for blob URL, não temos como saber o tipo sem fetch
-  // Assumir mp4 por padrão, mas idealmente isso não deveria acontecer
-  return 'mp4';
+  // Se for blob URL, não temos como saber o tipo sem fetch síncrono (impossível aqui) ou async (complexo alterar fluxo)
+  // Usamos o defaultExt passado pelo contexto (ex: 'jpg' se for img2vid, 'mp4' se for mimic)
+  return defaultExt;
 };
 
 export const generateVideo = async (...args: any[]): Promise<string> => {
@@ -374,11 +374,16 @@ export const generateVideo = async (...args: any[]): Promise<string> => {
   let mainPublicUrl = mainPreview;
   let stylePublicUrl = stylePreview;
 
+  // Determinar extensão padrão baseada no tipo de criação
+  // MIMIC = Video Input, Outros (Img2Vid) = Image Input
+  const isMainVideo = type === CreationType.MIMIC || type === CreationType.VIDEO;
+  const mainDefaultExt = isMainVideo ? 'mp4' : 'jpg';
+
   if (mainPreview && (mainPreview.startsWith('data:') || mainPreview.startsWith('blob:'))) {
     try {
-      // DETECTAR EXTENSÃO CORRETA baseada no MIME type
-      const ext = getFileExtensionFromDataUrl(mainPreview);
-      console.log(`📤 Uploading mainPreview como .${ext}...`);
+      // DETECTAR EXTENSÃO CORRETA
+      const ext = getFileExtensionFromDataUrl(mainPreview, mainDefaultExt);
+      console.log(`📤 Uploading mainPreview como .${ext} (Default: ${mainDefaultExt})...`);
 
       const uploadedUrl = await uploadFromDataUrl(mainPreview, userId, `video_main_${Date.now()}.${ext}`);
       if (uploadedUrl) {
@@ -396,8 +401,8 @@ export const generateVideo = async (...args: any[]): Promise<string> => {
 
   if (stylePreview && (stylePreview.startsWith('data:') || stylePreview.startsWith('blob:'))) {
     try {
-      // DETECTAR EXTENSÃO CORRETA baseada no MIME type
-      const ext = getFileExtensionFromDataUrl(stylePreview);
+      // Estilo é quase sempre imagem
+      const ext = getFileExtensionFromDataUrl(stylePreview, 'jpg');
       console.log(`📤 Uploading stylePreview como .${ext}...`);
 
       const uploadedUrl = await uploadFromDataUrl(stylePreview, userId, `video_style_${Date.now()}.${ext}`);
@@ -419,8 +424,7 @@ export const generateVideo = async (...args: any[]): Promise<string> => {
     (extraRefs || []).map(async (ref: any) => {
       if (ref.preview && (ref.preview.startsWith('data:') || ref.preview.startsWith('blob:'))) {
         try {
-          // DETECTAR EXTENSÃO CORRETA baseada no MIME type
-          const ext = getFileExtensionFromDataUrl(ref.preview);
+          const ext = getFileExtensionFromDataUrl(ref.preview, 'jpg'); // Assume imagem para extras
           const publicUrl = await uploadFromDataUrl(ref.preview, userId, `video_extra_${Date.now()}.${ext}`);
           return { ...ref, preview: publicUrl || ref.preview };
         } catch (error) {
