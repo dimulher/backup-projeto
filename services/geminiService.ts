@@ -4,6 +4,7 @@
 import { CreationType, AspectRatio, Quality, VideoDuration, VideoResolution, ExtraReference, ReferenceRole, CarouselSlide, ImageFormat } from "../types";
 import { uploadFromDataUrl } from './uploadService';
 import { getCurrentUser } from './authService';
+import { createGeneration, updateGenerationResult } from './generationsService';
 
 // --- INDEXED DB STORAGE UTILS ---
 // Used to store large reference files (up to 10MB) to avoid LocalStorage quotas
@@ -275,6 +276,18 @@ export const generateImage = async (...args: any[]): Promise<string> => {
     timestamp: new Date().toISOString()
   };
 
+  // Criar registro da geração no Supabase (Status: Processando)
+  let generationId: string | null = null;
+  if (userId !== 'anonymous') {
+    generationId = await createGeneration(userId, type, prompt, cost || 0, {
+      aspectRatio,
+      quality,
+      format,
+      extraRefs, // Salva referências extras (JSON)
+      referenceRole
+    });
+  }
+
   console.log('🌐 [generateImage] Enviando URLs públicas para webhook n8n:', payload);
 
 
@@ -325,7 +338,14 @@ export const generateImage = async (...args: any[]): Promise<string> => {
 
     // O webhook do n8n deve retornar { "url": "..." } ou { "output": "..." }
     // Ajuste conforme seu output real do n8n
-    return result.url || result.output || result.image_url || 'https://placeholder.com/image.png';
+    const finalUrl = result.url || result.output || result.image_url || 'https://placeholder.com/image.png';
+
+    // Atualizar registro no Supabase com a URL final
+    if (generationId && finalUrl) {
+      await updateGenerationResult(generationId, finalUrl);
+    }
+
+    return finalUrl;
   } catch (error) {
     console.error('❌ [generateImage] Erro ao chamar webhook:', error);
     throw error;
@@ -484,6 +504,19 @@ export const generateVideo = async (...args: any[]): Promise<string> => {
     timestamp: new Date().toISOString()
   };
 
+  // Criar registro da geração no Supabase
+  let generationId: string | null = null;
+  if (userId !== 'anonymous') {
+    generationId = await createGeneration(userId, type, prompt, cost || 0, {
+      aspectRatio,
+      duration,
+      videoResolution,
+      extraRefs,
+      mainId,
+      styleId
+    });
+  }
+
   console.log('🌐 [generateVideo] Enviando URLs públicas para webhook n8n:', payload);
 
   try {
@@ -514,7 +547,14 @@ export const generateVideo = async (...args: any[]): Promise<string> => {
     console.log('✅ [generateVideo] Resultado:', result);
 
     // Retornar URL do vídeo gerado
-    return result.url || result.videoUrl || result.video_url || 'https://placeholder-video.com';
+    const finalUrl = result.url || result.videoUrl || result.video_url || 'https://placeholder-video.com';
+
+    // Atualizar registro no Supabase com a URL final
+    if (generationId && finalUrl) {
+      await updateGenerationResult(generationId, finalUrl);
+    }
+
+    return finalUrl;
   } catch (error) {
     console.error('❌ [generateVideo] Erro ao chamar webhook:', error);
     throw error;

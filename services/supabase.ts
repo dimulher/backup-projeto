@@ -39,13 +39,14 @@ export interface User {
 }
 
 export interface Generation {
-    id?: string;
+    id: string;
     user_id: string;
     type: string;
     prompt: string;
-    image_url?: string;
     cost: number;
-    created_at?: string;
+    image_url: string | null;
+    metadata?: any; // JSONB column
+    created_at: string;
 }
 
 // Funções auxiliares para Storage

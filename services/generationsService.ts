@@ -11,7 +11,8 @@ export const createGeneration = async (
     userId: string,
     type: string,
     prompt: string,
-    cost: number
+    cost: number,
+    metadata: any = {}
 ): Promise<string | null> => {
     try {
         const { data, error } = await supabase
@@ -21,6 +22,7 @@ export const createGeneration = async (
                 type,
                 prompt,
                 cost,
+                metadata,
                 image_url: null, // Será preenchido quando o webhook retornar
                 created_at: new Date().toISOString()
             })

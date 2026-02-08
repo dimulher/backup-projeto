@@ -16,6 +16,7 @@ import { fileStorage } from './services/geminiService';
 import { FEATURE_FLAGS } from './constants';
 import { onAuthStateChange, getCurrentUser, signOut as supabaseSignOut } from './services/authService';
 import { getUserCredits, subscribeToCredits, createUserIfNotExists } from './services/creditsService';
+import { getUserGenerations } from './services/generationsService';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 // Safe checking for NaN/Infinity to prevent layout engine crashes
@@ -115,6 +116,40 @@ const App: React.FC = () => {
           setCredits(newCredits);
           creditsRef.current = newCredits;
         });
+
+        // BUSCAR GERAÇÕES DO BANCO
+        try {
+          const gens = await getUserGenerations(currentUser.id);
+          const mappedGens: CreationItem[] = gens.map(g => {
+            const meta = g.metadata || {};
+            return {
+              id: g.id, // UUID do banco
+              type: (g.type as CreationType) || CreationType.IMAGE,
+              url: g.image_url || '',
+              prompt: g.prompt,
+              createdAt: new Date(g.created_at).getTime(),
+              aspectRatio: meta.aspectRatio || AspectRatio.SQUARE,
+              quality: meta.quality || Quality.K1,
+              savedToGallery: true,
+              tags: meta.tags || [],
+              folderId: meta.folderId,
+            } as CreationItem;
+          });
+
+          // Filtrar apenas os que tem URL válida
+          const validGens = mappedGens.filter(i => i.url && i.url.length > 5);
+
+          setItems(prev => {
+            // Merge evitando duplicatas de URL se possível, ou apenas adicionar
+            // Prioridade para o banco
+            const prevUrls = new Set(prev.map(p => p.url));
+            const newItems = validGens.filter(g => !prevUrls.has(g.url));
+            return [...newItems, ...prev];
+          });
+        } catch (error) {
+          console.error("Erro ao buscar gerações:", error);
+        }
+
       }
 
       setIsAuthLoading(false);
@@ -138,6 +173,36 @@ const App: React.FC = () => {
           setCredits(userCredits);
           creditsRef.current = userCredits;
 
+          // BUSCAR GERAÇÕES DO BANCO (Repetido para login)
+          try {
+            const gens = await getUserGenerations(user.id);
+            const mappedGens: CreationItem[] = gens.map(g => {
+              const meta = g.metadata || {};
+              return {
+                id: g.id, // UUID do banco
+                type: (g.type as CreationType) || CreationType.IMAGE,
+                url: g.image_url || '',
+                prompt: g.prompt,
+                createdAt: new Date(g.created_at).getTime(),
+                aspectRatio: meta.aspectRatio || AspectRatio.SQUARE,
+                quality: meta.quality || Quality.K1,
+                savedToGallery: true,
+                tags: meta.tags || [],
+                folderId: meta.folderId,
+              } as CreationItem;
+            });
+
+            const validGens = mappedGens.filter(i => i.url && i.url.length > 5);
+
+            setItems(prev => {
+              const prevUrls = new Set(prev.map(p => p.url));
+              const newItems = validGens.filter(g => !prevUrls.has(g.url));
+              return [...newItems, ...prev];
+            });
+          } catch (error) {
+            console.error("Erro ao buscar gerações no login:", error);
+          }
+
           // Subscribe créditos
           if (creditsUnsubscribe) creditsUnsubscribe();
           creditsUnsubscribe = subscribeToCredits(user.id, (newCredits) => {
@@ -148,6 +213,7 @@ const App: React.FC = () => {
           setUser(null);
           setCredits(0);
           creditsRef.current = 0;
+          setItems([]); // Limpar itens ao deslogar
           if (creditsUnsubscribe) creditsUnsubscribe();
         }
       });
