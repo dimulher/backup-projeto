@@ -123,13 +123,13 @@ export const createUserIfNotExists = async (userId: string, email: string): Prom
             .insert({
                 id: userId,
                 email: email,
-                credits: 100,
+                credits: 70,
                 full_name: email.split('@')[0]
             });
 
         if (error) throw error;
 
-        console.log('✅ Novo usuário criado com 100 créditos');
+        console.log('✅ Novo usuário criado com 70 créditos');
         return true;
     } catch (error) {
         console.error('Erro ao criar usuário:', error);
