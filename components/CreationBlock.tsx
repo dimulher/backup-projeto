@@ -849,6 +849,32 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
                                                 onClick={() => {
                                                     if (!isGenerating) {
                                                         setType(opt.value);
+                                                        // RESET STATE ON MODEL CHANGE
+                                                        setPrompt('');
+
+                                                        setMainPreview(null);
+                                                        setMainId(null);
+                                                        setMainType('image');
+
+                                                        setStylePreview(null);
+                                                        setStyleId(null);
+                                                        setStyleType('image');
+
+                                                        setReferencePreview(null);
+                                                        setReferenceId(null);
+                                                        setReferenceType('image');
+                                                        setReferenceRole(ReferenceRole.FREE);
+
+                                                        setExtraRefs([]);
+
+                                                        // Reset Settings to Defaults (Safe Fallbacks)
+                                                        setAspectRatio(AspectRatio.SQUARE);
+                                                        setQuality(Quality.K1);
+                                                        setDuration(VideoDuration.SEC_5);
+                                                        setVideoResolution(VideoResolution.RES_720P);
+
+                                                        setErrorMsg(null);
+
                                                         setIsModelDropdownOpen(false);
                                                     }
                                                 }}
