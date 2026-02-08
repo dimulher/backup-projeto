@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import logo from '../assets/logo.png';
-import { signInWithGoogle } from '../services/authService';
+import { signInWithGoogle, signInWithEmail, signUpWithEmail } from '../services/authService';
 
 interface LoginScreenProps {
   onLogin: (email: string, name?: string) => void;
@@ -45,12 +45,43 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }
 
     setIsLoading(true);
-    // Simulate API call or actual login
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Fake delay
+      if (mode === 'login') {
+        const { success, error } = await signInWithEmail(email, password);
+        if (!success) {
+          throw new Error(error || "Falha no login");
+        }
+        // onLogin is called by the parent (App.tsx) usually via useEffect monitoring getSession, 
+        // but for immediate feedback we can call it here if the parent expects it.
+        // However, standard Supabase auth flow relies on onAuthStateChange.
+        // Let's keep onLogin for compatibility with current App.tsx structure if needed, 
+        // but typically App.tsx should listen to auth state.
+        // For now, we assume App.tsx will detect the session change.
+      } else {
+        const { success, error } = await signUpWithEmail(email, password, name);
+        if (!success) {
+          throw new Error(error || "Falha no cadastro");
+        }
+        // If signup requires email confirmation, we should alert the user
+        // But for now, let's assume it might auto-login or ask for confirmation
+        alert("Conta criada! Verifique se você já está logado ou verifique seu e-mail.");
+      }
+
+      // We don't necessarily need to call onLogin(email, name) if App.tsx uses onAuthStateChange
+      // But looking at previous code, onLogin seemed to update local state in App.tsx
+      // Let's call it to smooth the transition if App.tsx relies on it for simple state
       onLogin(email, name);
-    } catch (err) {
-      setError("Erro ao realizar login. Tente novamente.");
+
+    } catch (err: any) {
+      console.error("Auth error:", err);
+      if (err.message.includes("Invalid login credentials")) {
+        setError("E-mail ou senha incorretos.");
+      } else if (err.message.includes("User already registered")) {
+        setError("Este e-mail já está cadastrado.");
+      } else {
+        setError(err.message || "Erro ao realizar operação. Tente novamente.");
+      }
     } finally {
       setIsLoading(false);
     }

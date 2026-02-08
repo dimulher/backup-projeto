@@ -24,6 +24,43 @@ export const signInWithGoogle = async () => {
     }
 };
 
+// Login com Email e Senha
+export const signInWithEmail = async (email: string, password: string) => {
+    try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error: any) {
+        console.error('Erro no login com Email:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+// Cadastro com Email e Senha
+export const signUpWithEmail = async (email: string, password: string, name: string) => {
+    try {
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    full_name: name,
+                },
+            },
+        });
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error: any) {
+        console.error('Erro no cadastro com Email:', error);
+        return { success: false, error: error.message };
+    }
+};
+
 // Obter usuário atual
 export const getCurrentUser = async (): Promise<User | null> => {
     try {
