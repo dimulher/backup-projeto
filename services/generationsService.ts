@@ -45,17 +45,25 @@ export const updateGenerationResult = async (
     imageUrl: string
 ): Promise<boolean> => {
     try {
+        console.log(`🔄 [updateGenerationResult] Atualizando image_url no Supabase...`, {
+            generationId,
+            imageUrl: imageUrl.substring(0, 100) + '...'
+        });
+
         const { error } = await supabase
             .from('generations')
             .update({ image_url: imageUrl })
             .eq('id', generationId);
 
-        if (error) throw error;
+        if (error) {
+            console.error('❌ [updateGenerationResult] Erro ao atualizar:', error);
+            throw error;
+        }
 
-        console.log(`✅ Geração atualizada com resultado: ${generationId}`);
+        console.log(`✅ [updateGenerationResult] Geração atualizada com sucesso: ${generationId}`);
         return true;
     } catch (error) {
-        console.error('Erro ao atualizar geração:', error);
+        console.error('❌ [updateGenerationResult] Erro ao atualizar geração:', error);
         return false;
     }
 };

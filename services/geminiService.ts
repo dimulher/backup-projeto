@@ -334,15 +334,19 @@ export const generateImage = async (...args: any[]): Promise<string> => {
       }
     }
 
-    console.log('✅ [generateImage] Resultado:', result);
+    console.log('✅ [generateImage] Resultado do webhook:', result);
 
     // O webhook do n8n deve retornar { "url": "..." } ou { "output": "..." }
     // Ajuste conforme seu output real do n8n
     const finalUrl = result.url || result.output || result.image_url || 'https://placeholder.com/image.png';
+    console.log('🖼️ [generateImage] URL final extraída:', finalUrl);
 
     // Atualizar registro no Supabase com a URL final
     if (generationId && finalUrl) {
+      console.log(`🔄 [generateImage] Chamando updateGenerationResult para generationId: ${generationId}`);
       await updateGenerationResult(generationId, finalUrl);
+    } else {
+      console.warn('⚠️ [generateImage] Não foi possível atualizar:', { generationId, finalUrl });
     }
 
     return finalUrl;
@@ -431,7 +435,49 @@ export const generateVideo = async (...args: any[]): Promise<string> => {
   const isMainVideo = type === CreationType.MIMIC || type === CreationType.VIDEO;
   const mainDefaultExt = isMainVideo ? 'mp4' : 'jpg';
 
-  if (mainPreview && (mainPreview.startsWith('data:') || mainPreview.startsWith('blob:'))) {
+  // 🔧 FIX: Para MIMIC, se mainId existe, recuperar o vídeo real do IndexedDB
+  if (mainId && isMainVideo) {
+    try {
+      console.log(`🎬 [generateVideo] Recuperando vídeo real do IndexedDB (ID: ${mainId})...`);
+      const fileData = await fileStorage.getFile(mainId);
+
+      if (fileData && fileData.data) {
+        // Criar blob URL do vídeo real
+        const videoBlob = fileData.data;
+        const videoBlobUrl = URL.createObjectURL(videoBlob);
+
+        console.log(`✅ [generateVideo] Vídeo recuperado do IndexedDB:`, {
+          type: fileData.type,
+          size: `${(videoBlob.size / 1024).toFixed(2)} KB`,
+          blobUrl: videoBlobUrl.substring(0, 50) + '...'
+        });
+
+        // Detectar extensão do vídeo
+        const ext = getFileExtensionFromDataUrl(`data:${fileData.type};base64,`, mainDefaultExt);
+        console.log(`📤 Uploading mainPreview (VÍDEO REAL) como .${ext}...`);
+
+        const uploadedUrl = await uploadFromDataUrl(videoBlobUrl, userId, `video_main_${Date.now()}.${ext}`);
+        if (uploadedUrl) {
+          mainPublicUrl = uploadedUrl;
+          console.log('✅ mainPreview URL (VÍDEO):', mainPublicUrl);
+        } else {
+          console.warn('⚠️ Upload retornou null, usando blob URL original');
+          mainPublicUrl = videoBlobUrl;
+        }
+
+        // Limpar blob URL após upload
+        URL.revokeObjectURL(videoBlobUrl);
+      } else {
+        console.warn('⚠️ [generateVideo] Arquivo não encontrado no IndexedDB, usando thumbnail');
+      }
+    } catch (error) {
+      console.error('❌ [generateVideo] Erro ao recuperar vídeo do IndexedDB:', error);
+      console.warn('⚠️ Fallback: usando thumbnail');
+    }
+  }
+  // Para outros casos (não-MIMIC ou sem mainId), processar normalmente
+  else if (mainPreview && (mainPreview.startsWith('data:') || mainPreview.startsWith('blob:'))) {
+
     try {
       // DETECTAR EXTENSÃO CORRETA
       const ext = getFileExtensionFromDataUrl(mainPreview, mainDefaultExt);
@@ -544,14 +590,18 @@ export const generateVideo = async (...args: any[]): Promise<string> => {
     }
 
     const result = JSON.parse(responseText);
-    console.log('✅ [generateVideo] Resultado:', result);
+    console.log('✅ [generateVideo] Resultado do webhook:', result);
 
     // Retornar URL do vídeo gerado
     const finalUrl = result.url || result.videoUrl || result.video_url || 'https://placeholder-video.com';
+    console.log('🎬 [generateVideo] URL final extraída:', finalUrl);
 
     // Atualizar registro no Supabase com a URL final
     if (generationId && finalUrl) {
+      console.log(`🔄 [generateVideo] Chamando updateGenerationResult para generationId: ${generationId}`);
       await updateGenerationResult(generationId, finalUrl);
+    } else {
+      console.warn('⚠️ [generateVideo] Não foi possível atualizar:', { generationId, finalUrl });
     }
 
     return finalUrl;
