@@ -156,7 +156,8 @@ export const generateImage = async (...args: any[]): Promise<string> => {
     format,
     referencePreview,
     referenceRole,
-    onRetryStatus
+    onRetryStatus,
+    cost // Adicionado cost aos argumentos desestruturados
   ] = args;
 
   // Obter usuário autenticado
@@ -270,6 +271,7 @@ export const generateImage = async (...args: any[]): Promise<string> => {
     referenceRole,
     extraRefs: uploadedExtraRefs,
     userId, // Adicionado userId
+    cost: cost || 0, // Adicionado cost com fallback
     timestamp: new Date().toISOString()
   };
 
@@ -287,17 +289,43 @@ export const generateImage = async (...args: any[]): Promise<string> => {
 
     console.log('📥 [generateImage] Resposta do webhook:', response.status, response.statusText);
 
+    if (response.status === 503) {
+      console.warn('⚠️ [generateImage] Webhook retornou 503 (Serviço Indisponível/Sobrecarregado).');
+      if (onRetryStatus) onRetryStatus(503); // Notificar UI sobre retry se necessário
+      // Opcional: Implementar retry automático aqui se desejado, mas o loop na UI já faz isso
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ [generateImage] Erro:', errorText);
       throw new Error(`Erro no webhook: ${response.status} - ${response.statusText}`);
     }
 
-    const result = await response.json();
+    // Verificar se há conteúdo na resposta
+    const responseText = await response.text();
+    if (!responseText || responseText.trim() === '') {
+      console.error('❌ [generateImage] Webhook retornou resposta vazia');
+      // throw new Error('Webhook não retornou dados. Verifique o n8n.');
+      // Se for apenas fire-and-forget, ok. Mas aqui esperamos a imagem.
+    }
+
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (e) {
+      // Se não for JSON, pode ser a URL direta string?
+      if (responseText.startsWith('http')) {
+        result = { url: responseText };
+      } else {
+        throw new Error("Resposta inválida do webhook (não é JSON nem URL).");
+      }
+    }
+
     console.log('✅ [generateImage] Resultado:', result);
 
-    // Retornar URL da imagem gerada
-    return result.url || result.imageUrl || result.image_url || 'https://placeholder-image.com';
+    // O webhook do n8n deve retornar { "url": "..." } ou { "output": "..." }
+    // Ajuste conforme seu output real do n8n
+    return result.url || result.output || result.image_url || 'https://placeholder.com/image.png';
   } catch (error) {
     console.error('❌ [generateImage] Erro ao chamar webhook:', error);
     throw error;
@@ -348,14 +376,18 @@ export const generateVideo = async (...args: any[]): Promise<string> => {
     mainId,
     styleId,
     stylePreview,
-    onRetryStatus
+    referencePreview,
+    referenceRole,
+    onRetryStatus,
+    cost // Novo parâmetro esperado no final
   ] = args;
 
   console.log('🔍 [generateVideo] Previews recebidos:', {
     mainPreview: mainPreview ? `${mainPreview.substring(0, 50)}... (${mainPreview.length} chars)` : 'NULL',
     stylePreview: stylePreview ? `${stylePreview.substring(0, 50)}... (${stylePreview.length} chars)` : 'NULL',
     mainId,
-    styleId
+    styleId,
+    cost
   });
 
   // Obter usuário autenticado
@@ -448,6 +480,7 @@ export const generateVideo = async (...args: any[]): Promise<string> => {
     stylePreview: stylePublicUrl,
     extraRefs: uploadedExtraRefs,
     userId, // Adicionado userId
+    cost: cost || 0, // Adicionado cost
     timestamp: new Date().toISOString()
   };
 

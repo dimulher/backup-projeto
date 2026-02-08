@@ -618,7 +618,8 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
                         format,
                         referencePreview || undefined,
                         referenceRole,
-                        onRetryStatus // Pass the retry callback
+                        onRetryStatus, // Pass the retry callback
+                        cost // Passando o custo
                     );
                 } else {
                     setLoadingStep('Renderizando...');
@@ -633,7 +634,8 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
                         stylePreview || undefined,
                         referencePreview || undefined,
                         referenceRole,
-                        onRetryStatus // Pass the retry callback
+                        onRetryStatus, // Pass the retry callback
+                        cost // Passando o custo
                     );
                 }
 
