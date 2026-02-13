@@ -114,9 +114,11 @@ const DraggableResult: React.FC<DraggableResultProps> = ({ item, onDelete, onUpd
       console.error("Download failed fallback", error);
       const link = document.createElement('a');
       // Try to force download via query param if supported by server, otherwise just link
-      link.href = `${item.url}?download=true`;
+      // Check if URL already has query params
+      const separator = item.url.includes('?') ? '&' : '?';
+      link.href = `${item.url}${separator}download=${encodeURIComponent(filename)}`;
       link.download = filename;
-      link.target = '_blank';
+      link.target = '_blank'; // Keep _blank as safety net
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

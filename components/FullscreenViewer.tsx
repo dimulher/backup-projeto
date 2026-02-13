@@ -94,7 +94,8 @@ const FullscreenViewer: React.FC<FullscreenViewerProps> = ({ item, onClose }) =>
       console.error("Download failed, falling back to direct link", error);
       // Fallback for direct URLs
       const link = document.createElement('a');
-      link.href = `${item.url}?download=true`;
+      const separator = item.url.includes('?') ? '&' : '?';
+      link.href = `${item.url}${separator}download=${encodeURIComponent(filename)}`;
       link.download = filename;
       link.target = '_blank';
       document.body.appendChild(link);

@@ -14,7 +14,11 @@ export const CREDIT_COSTS = {
     '2K': 20,
     '4K': 25,
   },
-  AVATAR: 22,
+  AVATAR: {
+    '1K': 18,
+    '2K': 20,
+    '4K': 25,
+  },
   VIDEO: 20,
   IMAGE_TO_VIDEO: 25,
   FACE_TO_VIDEO: 30,
