@@ -195,8 +195,17 @@ const App: React.FC = () => {
             const validGens = mappedGens.filter(i => i.url && i.url.length > 5);
 
             setItems(prev => {
+              const prevIds = new Set(prev.map(p => p.id));
               const prevUrls = new Set(prev.map(p => p.url));
-              const newItems = validGens.filter(g => !prevUrls.has(g.url));
+
+              const newItems = validGens.filter(g => {
+                // Strict deduplication: Check ID first (from DB), then URL
+                if (prevIds.has(g.id)) return false;
+                if (prevUrls.has(g.url)) return false;
+                return true;
+              });
+
+              if (newItems.length === 0) return prev;
               return [...newItems, ...prev];
             });
           } catch (error) {
@@ -758,8 +767,8 @@ const App: React.FC = () => {
 
   // --- Block & Item Management ---
 
-  const onGenerated = useCallback(async (type: CreationType, url: string, prompt: string, details: any, blockId: string) => {
-    const newItemId = Date.now().toString();
+  const onGenerated = useCallback(async (type: CreationType, url: string, prompt: string, details: any, blockId: string, dbId?: string) => {
+    const newItemId = dbId || Date.now().toString();
 
     let assetId = '';
     let displayUrl = url;

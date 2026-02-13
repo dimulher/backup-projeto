@@ -143,8 +143,10 @@ export const enhancePrompt = async (prompt: string): Promise<string> => {
   return prompt;
 };
 
-export const generateImage = async (...args: any[]): Promise<string> => {
+export const generateImage = async (...args: any[]): Promise<{ url: string, id: string | null }> => {
   console.log('🚀 [generateImage] Chamado com argumentos:', args);
+  // ... (keep existing implementation until return)
+
 
   const [
     prompt,
@@ -349,7 +351,7 @@ export const generateImage = async (...args: any[]): Promise<string> => {
       console.warn('⚠️ [generateImage] Não foi possível atualizar:', { generationId, finalUrl });
     }
 
-    return finalUrl;
+    return { url: finalUrl, id: generationId };
   } catch (error) {
     console.error('❌ [generateImage] Erro ao chamar webhook:', error);
     throw error;
@@ -385,7 +387,7 @@ const getFileExtensionFromDataUrl = (dataUrl: string, defaultExt: string = 'mp4'
   return defaultExt;
 };
 
-export const generateVideo = async (...args: any[]): Promise<string> => {
+export const generateVideo = async (...args: any[]): Promise<{ url: string, id: string | null }> => {
   console.log('🚀 [generateVideo] Chamado com argumentos:', args);
 
   const [
@@ -604,7 +606,7 @@ export const generateVideo = async (...args: any[]): Promise<string> => {
       console.warn('⚠️ [generateVideo] Não foi possível atualizar:', { generationId, finalUrl });
     }
 
-    return finalUrl;
+    return { url: finalUrl, id: generationId };
   } catch (error) {
     console.error('❌ [generateVideo] Erro ao chamar webhook:', error);
     throw error;

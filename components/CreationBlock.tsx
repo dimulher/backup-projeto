@@ -13,7 +13,7 @@ interface CreationBlockProps {
     initialData: EditorBlockData;
     onUpdate: (id: string, data: Partial<EditorBlockData>) => void;
     onDuplicate: (id: string) => void;
-    onGenerated: (type: CreationType, url: string, prompt: string, details: any) => void;
+    onGenerated: (type: CreationType, url: string, prompt: string, details: any, dbId?: string) => void;
     credits: number;
     deductCredits: (amount: number) => boolean;
     onPositionChange: (x: number, y: number) => void;
@@ -598,6 +598,7 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
             }
 
             let resultUrl = '';
+            let dbId: string | undefined;
 
             // --- RETRY LOOP FOR ANTI-DUPLICATION (Creative Model) ---
             let attempts = 0;
@@ -609,7 +610,7 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
                 // Generate
                 if (type === CreationType.IMAGE || type === CreationType.AVATAR || type === CreationType.CREATIVE_MODEL || type === CreationType.PROFESSIONAL_PHOTO) {
                     setLoadingStep(attempts > 1 ? 'Tentando novamente (Anti-duplicação)...' : 'Processando...');
-                    resultUrl = await generateImage(
+                    const result = await generateImage(
                         prompt,
                         aspectRatio,
                         quality,
@@ -623,9 +624,11 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
                         onRetryStatus, // Pass the retry callback
                         cost // Passando o custo
                     );
+                    resultUrl = result.url;
+                    dbId = result.id || undefined;
                 } else {
                     setLoadingStep('Renderizando...');
-                    resultUrl = await generateVideo(
+                    const result = await generateVideo(
                         prompt, aspectRatio, duration, videoResolution,
                         mainPreview || undefined,
                         extraRefs,
@@ -639,6 +642,8 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
                         onRetryStatus, // Pass the retry callback
                         cost // Passando o custo
                     );
+                    resultUrl = result.url;
+                    dbId = result.id || undefined;
                 }
 
                 if (!resultUrl) throw new Error("A API não retornou dados.");
@@ -668,8 +673,8 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
 
             // CRITICAL: Deduct credits ONLY if we have a success result URL AND passed validation
             if (deductCredits(cost)) {
-                onGenerated(type, resultUrl, prompt, { quality, aspectRatio });
-                onUpdate(id, { lastGeneratedUrl: resultUrl });
+                onGenerated(type, resultUrl, prompt, { quality, aspectRatio }, dbId);
+                onUpdate(id, { lastGeneratedUrl: resultUrl, lastGeneratedAssetId: undefined }); // Don't persist asset ID here yet
             } else {
                 // Should not happen if validation passed, but safety check
                 throw new Error("Erro ao debitar créditos.");
