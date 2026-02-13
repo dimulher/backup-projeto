@@ -1028,13 +1028,15 @@ const App: React.FC = () => {
   const MemoizedDraggableResult = useMemo(() => {
     // Reverse the order so new items (which are added to the front of the array)
     // are rendered LAST in the DOM, appearing ON TOP of older items.
-    return [...editorHistoryIds].reverse().map(id => {
+    return [...editorHistoryIds].reverse().map((id, index) => {
       const item = items.find(i => i.id === id);
       if (!item) return null;
       return (
         <DraggableResult
           key={item.id}
           item={item}
+          isTop={index === editorHistoryIds.length - 1} // Newest item
+          zIndex={10 + index} // Base Z-Index matching render order
           onDelete={deleteItem}
           onUpdatePosition={updateItemPosition}
           onSaveToGallery={saveToGallery}

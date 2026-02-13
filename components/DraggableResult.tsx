@@ -7,11 +7,22 @@ interface DraggableResultProps {
   onDelete: (id: string) => void;
   onUpdatePosition: (id: string, x: number, y: number) => void;
   onSaveToGallery: (id: string) => void;
-  onExpand: (id: string) => void; // New prop to trigger global viewer
+  onExpand: (id: string) => void;
   scale: number;
+  zIndex?: number;
+  isTop?: boolean;
 }
 
-const DraggableResult: React.FC<DraggableResultProps> = ({ item, onDelete, onUpdatePosition, onSaveToGallery, onExpand, scale }) => {
+const DraggableResult: React.FC<DraggableResultProps> = ({
+  item,
+  onDelete,
+  onUpdatePosition,
+  onSaveToGallery,
+  onExpand,
+  scale,
+  zIndex = 10,
+  isTop = false
+}) => {
   // We use local state for initial mount, but DOM manipulation for updates
   const elementRef = useRef<HTMLDivElement>(null);
   const dragInfo = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0, isDragging: false });
@@ -97,28 +108,61 @@ const DraggableResult: React.FC<DraggableResultProps> = ({ item, onDelete, onUpd
     const mimeType = isVideo ? 'video/mp4' : 'image/png';
     const filename = `AdGenius-${item.id}.${extension}`;
 
-    try {
-      const response = await fetch(item.url);
-      const blob = await response.blob();
-      const newBlob = new Blob([blob], { type: mimeType });
-      const objectUrl = URL.createObjectURL(newBlob);
-
+    const downloadFile = (blobOrUrl: Blob | string, name: string) => {
       const link = document.createElement('a');
-      link.href = objectUrl;
-      link.download = filename;
+      if (typeof blobOrUrl === 'string') {
+        link.href = blobOrUrl;
+      } else {
+        link.href = URL.createObjectURL(blobOrUrl);
+      }
+      link.download = name;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(objectUrl);
+      if (typeof blobOrUrl !== 'string') URL.revokeObjectURL(link.href);
+    };
+
+    try {
+      // 1. Try standard fetch for blob (Works for local/CORS-enabled)
+      const response = await fetch(item.url, { mode: 'cors' });
+      if (!response.ok) throw new Error('Network response was not ok');
+      const blob = await response.blob();
+      const newBlob = new Blob([blob], { type: mimeType });
+      downloadFile(newBlob, filename);
+
     } catch (error) {
-      console.error("Download failed fallback", error);
+      console.warn("Fetch download failed, trying fallback...", error);
+
+      if (!isVideo && elementRef.current) {
+        // 2. Fallback: Canvas Export (Images Only)
+        try {
+          const img = elementRef.current.querySelector('img');
+          if (img) {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0);
+              canvas.toBlob((blob) => {
+                if (blob) downloadFile(blob, filename);
+                else throw new Error("Canvas blob failed");
+              }, mimeType);
+              return;
+            }
+          }
+        } catch (canvasError) {
+          console.error("Canvas export failed", canvasError);
+        }
+      }
+
+      // 3. Last Resort: Direct Link with download param
+      console.warn("Falling back to direct link");
       const link = document.createElement('a');
-      // Try to force download via query param if supported by server, otherwise just link
-      // Check if URL already has query params
       const separator = item.url.includes('?') ? '&' : '?';
       link.href = `${item.url}${separator}download=${encodeURIComponent(filename)}`;
       link.download = filename;
-      link.target = '_blank'; // Keep _blank as safety net
+      link.target = '_self';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -134,10 +178,11 @@ const DraggableResult: React.FC<DraggableResultProps> = ({ item, onDelete, onUpd
       // PREMIUM ZOOM: We apply the scale here on the individual block, preventing blurry texture scaling
       style={{
         transform: `translate(${currentX * scale}px, ${currentY * scale}px) scale(${scale})`,
+        zIndex: isDraggingVisual ? 9999 : zIndex,
         transformOrigin: '0 0',
         touchAction: 'none'
       }}
-      className={`stop-pan absolute top-0 left-0 z-20 group transition-shadow duration-300 sharp-render ${isDraggingVisual ? 'scale-[1.02] z-50 shadow-2xl' : 'shadow-xl'} animate-in fade-in slide-in-from-left-8`}
+      className={`stop-pan absolute top-0 left-0 group transition-shadow duration-300 sharp-render ${isDraggingVisual ? 'scale-[1.02] shadow-2xl' : 'shadow-xl'} animate-in fade-in slide-in-from-left-8`}
     >
       <div className="bg-[#F8FAFC] dark:bg-[#0f172a]/95 border border-slate-200 dark:border-[#1e293b] rounded-[1.5rem] overflow-hidden w-[320px] backdrop-blur-xl flex flex-col shadow-2xl relative">
 
@@ -165,7 +210,7 @@ const DraggableResult: React.FC<DraggableResultProps> = ({ item, onDelete, onUpd
         {/* Media */}
         <div className="relative w-full bg-slate-100 dark:bg-black aspect-square flex items-center justify-center overflow-hidden no-drag cursor-pointer group/media" onClick={() => onExpand(item.id)}>
           {!isVideo ? (
-            <img src={item.url} className="w-full h-full object-contain" alt="Resultado" />
+            <img src={item.url} crossOrigin="anonymous" className="w-full h-full object-contain" alt="Resultado" />
           ) : (
             <video src={item.url} className="w-full h-full object-contain" controls={false} playsInline autoPlay muted loop />
           )}

@@ -72,32 +72,57 @@ const FullscreenViewer: React.FC<FullscreenViewerProps> = ({ item, onClose }) =>
     const mimeType = isVideo ? 'video/mp4' : 'image/png';
     const filename = `AdGenius-${item.id}.${extension}`;
 
-    try {
-      // Fetch data to ensure we have a valid blob with correct type
-      const response = await fetch(item.url);
-      const blob = await response.blob();
-
-      // Force the correct MIME type
-      const newBlob = new Blob([blob], { type: mimeType });
-      const objectUrl = URL.createObjectURL(newBlob);
-
+    const downloadFile = (blobOrUrl: Blob | string, name: string) => {
       const link = document.createElement('a');
-      link.href = objectUrl;
-      link.download = filename;
+      if (typeof blobOrUrl === 'string') {
+        link.href = blobOrUrl;
+      } else {
+        link.href = URL.createObjectURL(blobOrUrl);
+      }
+      link.download = name;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      if (typeof blobOrUrl !== 'string') URL.revokeObjectURL(link.href);
+    };
 
-      // Cleanup
-      URL.revokeObjectURL(objectUrl);
+    try {
+      // 1. Try standard fetch for blob
+      const response = await fetch(item.url, { mode: 'cors' });
+      if (!response.ok) throw new Error('Network response was not ok');
+      const blob = await response.blob();
+      const newBlob = new Blob([blob], { type: mimeType });
+      downloadFile(newBlob, filename);
+
     } catch (error) {
-      console.error("Download failed, falling back to direct link", error);
-      // Fallback for direct URLs
+      console.warn("Download fallback triggered", error);
+
+      if (!isVideo && imgRef.current) {
+        // 2. Canvas Fallback
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = imgRef.current.naturalWidth;
+          canvas.height = imgRef.current.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(imgRef.current, 0, 0);
+            canvas.toBlob((blob) => {
+              if (blob) downloadFile(blob, filename);
+              else throw new Error("Canvas blob failed");
+            }, mimeType);
+            return;
+          }
+        } catch (canvasError) {
+          console.error("Canvas export failed", canvasError);
+        }
+      }
+
+      // 3. Direct Link Fallback
       const link = document.createElement('a');
       const separator = item.url.includes('?') ? '&' : '?';
       link.href = `${item.url}${separator}download=${encodeURIComponent(filename)}`;
       link.download = filename;
-      link.target = '_blank';
+      link.target = '_self';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -176,6 +201,7 @@ const FullscreenViewer: React.FC<FullscreenViewerProps> = ({ item, onClose }) =>
             <img
               ref={imgRef}
               src={item.url}
+              crossOrigin="anonymous"
               alt="Fullscreen View"
               className="max-w-full max-h-[85vh] object-contain rounded-lg select-none pointer-events-none"
               style={{ pointerEvents: 'none' }}
