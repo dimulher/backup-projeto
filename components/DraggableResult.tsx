@@ -95,7 +95,7 @@ const DraggableResult: React.FC<DraggableResultProps> = ({ item, onDelete, onUpd
   const handleDownload = async () => {
     const extension = isVideo ? 'mp4' : 'png';
     const mimeType = isVideo ? 'video/mp4' : 'image/png';
-    const filename = `creativeflow-${item.id}.${extension}`;
+    const filename = `AdGenius-${item.id}.${extension}`;
 
     try {
       const response = await fetch(item.url);
@@ -113,7 +113,8 @@ const DraggableResult: React.FC<DraggableResultProps> = ({ item, onDelete, onUpd
     } catch (error) {
       console.error("Download failed fallback", error);
       const link = document.createElement('a');
-      link.href = item.url;
+      // Try to force download via query param if supported by server, otherwise just link
+      link.href = `${item.url}?download=true`;
       link.download = filename;
       link.target = '_blank';
       document.body.appendChild(link);

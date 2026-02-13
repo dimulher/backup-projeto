@@ -269,17 +269,19 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
         return () => window.removeEventListener('keydown', handleEsc);
     }, [isPromptModalOpen]);
 
-    // Validate Duration when switching models
+    // Validate Duration and Aspect Ratio when switching models
     useEffect(() => {
-        const isMimic = type === CreationType.MIMIC;
-        const validDurations = isMimic
-            ? [VideoDuration.SEC_5, VideoDuration.SEC_10, VideoDuration.SEC_15, VideoDuration.SEC_20]
-            : [VideoDuration.SEC_5, VideoDuration.SEC_10];
+        const isVideoType = [CreationType.VIDEO, CreationType.IMAGE_TO_VIDEO, CreationType.MIMIC, CreationType.FACE_TO_VIDEO].includes(type);
 
-        if (!validDurations.includes(duration)) {
-            setDuration(VideoDuration.SEC_5);
+        if (isVideoType) {
+            if (duration !== VideoDuration.SEC_10) {
+                setDuration(VideoDuration.SEC_10);
+            }
+            if (aspectRatio === AspectRatio.SQUARE) {
+                setAspectRatio(AspectRatio.LANDSCAPE);
+            }
         }
-    }, [type, duration]);
+    }, [type, duration, aspectRatio]);
 
     // Sync basic fields
     useEffect(() => {
@@ -711,10 +713,10 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
         return 'image/*';
     };
 
-    const shouldShowSlot2 = type !== CreationType.IMAGE_TO_VIDEO && type !== CreationType.AVATAR && type !== CreationType.FACE_TO_VIDEO && type !== CreationType.PROFESSIONAL_PHOTO && type !== CreationType.IMAGE;
-    const shouldShowSlot1 = type !== CreationType.AVATAR && type !== CreationType.IMAGE;
-    // Reference slot is generally available for image generation tasks and now professional photo, image-to-video, face-to-video AND standard video
-    const shouldShowReference = (type === CreationType.IMAGE || type === CreationType.CREATIVE_MODEL || type === CreationType.PROFESSIONAL_PHOTO || type === CreationType.IMAGE_TO_VIDEO || type === CreationType.FACE_TO_VIDEO || type === CreationType.VIDEO);
+    const shouldShowSlot2 = type !== CreationType.IMAGE_TO_VIDEO && type !== CreationType.AVATAR && type !== CreationType.FACE_TO_VIDEO && type !== CreationType.PROFESSIONAL_PHOTO && type !== CreationType.IMAGE && type !== CreationType.VIDEO;
+    const shouldShowSlot1 = type !== CreationType.AVATAR && type !== CreationType.IMAGE && type !== CreationType.VIDEO;
+    // Reference slot is generally available for image generation tasks and now professional photo, image-to-video, face-to-video (but not standard video anymore)
+    const shouldShowReference = (type === CreationType.IMAGE || type === CreationType.CREATIVE_MODEL || type === CreationType.PROFESSIONAL_PHOTO || type === CreationType.IMAGE_TO_VIDEO || type === CreationType.FACE_TO_VIDEO);
 
     const getImageAspectOptions = () => [
         { value: '1:1', label: '1:1' },
@@ -731,16 +733,8 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
     ];
 
     const getVideoDurationOptions = () => {
-        if (type === CreationType.MIMIC) {
-            return [
-                { value: VideoDuration.SEC_5, label: '5 Segundos' },
-                { value: VideoDuration.SEC_10, label: '10 Segundos' },
-                { value: VideoDuration.SEC_15, label: '15 Segundos' },
-                { value: VideoDuration.SEC_20, label: '20 Segundos' },
-            ];
-        }
+        // Enforce 10 seconds for all video types
         return [
-            { value: VideoDuration.SEC_5, label: '5 Segundos' },
             { value: VideoDuration.SEC_10, label: '10 Segundos' },
         ];
     };
@@ -751,7 +745,6 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
     ];
 
     const getVideoAspectOptions = () => [
-        { value: AspectRatio.SQUARE, label: '1:1' },
         { value: AspectRatio.LANDSCAPE, label: '16:9' },
         { value: AspectRatio.PORTRAIT, label: '9:16' },
     ];

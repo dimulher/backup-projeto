@@ -764,21 +764,22 @@ const App: React.FC = () => {
     let assetId = '';
     let displayUrl = url;
 
-    if (url.startsWith('data:') || url.startsWith('blob:')) {
-      try {
-        assetId = await fileStorage.saveAsset(url);
-        const storedUrl = await fileStorage.getAssetUrl(assetId);
-        if (storedUrl) displayUrl = storedUrl;
-      } catch (e) {
-        console.error("Failed to save generated asset immediately", e);
-      }
+    // FORCE LOCAL BLOB STORAGE for all generations to enable direct downloads
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      assetId = await fileStorage.saveAsset(blob);
+      const storedUrl = await fileStorage.getAssetUrl(assetId);
+      if (storedUrl) displayUrl = storedUrl;
+    } catch (e) {
+      console.error("Failed to save generated asset immediately", e);
+      // Fallback to original URL if fetch fails
     }
 
     setEditorBlocks(prev => {
       const block = prev.find(b => b.id === blockId);
       if (!block) return prev;
 
-      const isDesktop = window.innerWidth >= 1024;
       return prev.map(b => b.id === blockId ? {
         ...b,
         data: {
@@ -804,13 +805,36 @@ const App: React.FC = () => {
 
     setItems(itemsPrev => {
       const block = editorBlocks.find(b => b.id === blockId);
-      const refX = block ? block.position.x : 0;
-      const refY = block ? block.position.y : 0;
       const isDesktop = window.innerWidth >= 1024;
 
+      // Default Position (Right of block)
+      let refX = block ? block.position.x : 0;
+      let refY = block ? block.position.y : 0;
+
+      let candidateX = isDesktop ? refX + 440 : refX;
+      let candidateY = isDesktop ? refY : refY + 650;
+
+      // Collision Detection: Shift right until we find a spot not occupied by another result
+      // We check if any existing item is within a small threshold of the candidate position
+      const collisionThreshold = 50;
+      let collision = true;
+      let attempts = 0;
+
+      while (collision && attempts < 10) {
+        collision = itemsPrev.some(item =>
+          Math.abs((item.position?.x || 0) - candidateX) < collisionThreshold &&
+          Math.abs((item.position?.y || 0) - candidateY) < collisionThreshold
+        );
+
+        if (collision) {
+          candidateX += 340; // Shift right by width of result card + gap
+          attempts++;
+        }
+      }
+
       newItem.position = {
-        x: isDesktop ? refX + 440 : refX,
-        y: isDesktop ? refY : refY + 650
+        x: candidateX,
+        y: candidateY
       };
       return [newItem, ...itemsPrev];
     });
@@ -1002,7 +1026,9 @@ const App: React.FC = () => {
   }, [visibleBlocks, credits, deductCredits, onGenerated, presets, updateBlockPosition, removeBlock, duplicateBlock, updateBlockData, transform.scale, handleManualUpload, items]);
 
   const MemoizedDraggableResult = useMemo(() => {
-    return editorHistoryIds.map(id => {
+    // Reverse the order so new items (which are added to the front of the array)
+    // are rendered LAST in the DOM, appearing ON TOP of older items.
+    return [...editorHistoryIds].reverse().map(id => {
       const item = items.find(i => i.id === id);
       if (!item) return null;
       return (

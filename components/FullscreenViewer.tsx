@@ -70,7 +70,7 @@ const FullscreenViewer: React.FC<FullscreenViewerProps> = ({ item, onClose }) =>
 
     const extension = isVideo ? 'mp4' : 'png';
     const mimeType = isVideo ? 'video/mp4' : 'image/png';
-    const filename = `creativeflow-${item.id}.${extension}`;
+    const filename = `AdGenius-${item.id}.${extension}`;
 
     try {
       // Fetch data to ensure we have a valid blob with correct type
@@ -94,7 +94,7 @@ const FullscreenViewer: React.FC<FullscreenViewerProps> = ({ item, onClose }) =>
       console.error("Download failed, falling back to direct link", error);
       // Fallback for direct URLs
       const link = document.createElement('a');
-      link.href = item.url;
+      link.href = `${item.url}?download=true`;
       link.download = filename;
       link.target = '_blank';
       document.body.appendChild(link);
