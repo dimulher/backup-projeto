@@ -408,6 +408,10 @@ const App: React.FC = () => {
         let rawItems = savedItems ? JSON.parse(savedItems) : [];
         let rawBlocks = savedEditorBlocks ? JSON.parse(savedEditorBlocks) : [];
 
+        // Pre-sanitize raw data to prevent hydrateState from crashing
+        rawItems = Array.isArray(rawItems) ? rawItems.filter(i => i && typeof i === 'object') : [];
+        rawBlocks = Array.isArray(rawBlocks) ? rawBlocks.filter(b => b && typeof b === 'object' && b.data) : [];
+
         const { items: loadedItems, blocks: loadedBlocks } = await hydrateState(rawItems, rawBlocks);
 
         setItems(loadedItems);
@@ -415,7 +419,8 @@ const App: React.FC = () => {
         if (loadedBlocks.length > 0) {
           setEditorBlocks(loadedBlocks.map((b: any) => ({
             ...b,
-            position: { x: safeValue(b.position?.x, 0), y: safeValue(b.position?.y, 0) }
+            position: { x: safeValue(b.position?.x, 0), y: safeValue(b.position?.y, 0) },
+            data: b.data || { type: CreationType.IMAGE, prompt: '' } // Extra safety
           })));
           setActiveLayerId(loadedBlocks[0].id);
         } else {

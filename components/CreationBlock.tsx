@@ -159,32 +159,35 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
     isSingle,
     scale,
 }) => {
-    const [type, setType] = useState<CreationType>(initialData.type || CreationType.IMAGE);
-    const [prompt, setPrompt] = useState(initialData.prompt || '');
-    const [aspectRatio, setAspectRatio] = useState<AspectRatio>(initialData.aspectRatio || AspectRatio.SQUARE);
-    const [quality, setQuality] = useState<Quality>(initialData.quality || Quality.K1);
-    const [format, setFormat] = useState<ImageFormat>(initialData.format || ImageFormat.PNG);
-    const [duration, setDuration] = useState<VideoDuration>(initialData.duration || VideoDuration.SEC_5);
-    const [videoResolution, setVideoResolution] = useState<VideoResolution>(initialData.videoResolution || VideoResolution.RES_720P);
+    // Defensive coding: Ensure initialData exists
+    const safeData = initialData || { type: CreationType.IMAGE };
+
+    const [type, setType] = useState<CreationType>(safeData.type || CreationType.IMAGE);
+    const [prompt, setPrompt] = useState(safeData.prompt || '');
+    const [aspectRatio, setAspectRatio] = useState<AspectRatio>(safeData.aspectRatio || AspectRatio.SQUARE);
+    const [quality, setQuality] = useState<Quality>(safeData.quality || Quality.K1);
+    const [format, setFormat] = useState<ImageFormat>(safeData.format || ImageFormat.PNG);
+    const [duration, setDuration] = useState<VideoDuration>(safeData.duration || VideoDuration.SEC_5);
+    const [videoResolution, setVideoResolution] = useState<VideoResolution>(safeData.videoResolution || VideoResolution.RES_720P);
 
     // Ref 1 (Slot 1 - Subject)
-    const [mainPreview, setMainPreview] = useState<string | null>(initialData.refMain || null);
-    const [mainId, setMainId] = useState<string | null>(initialData.refMainId || null);
-    const [mainType, setMainType] = useState<'image' | 'video'>(initialData.refMainType || 'image');
+    const [mainPreview, setMainPreview] = useState<string | null>(safeData.refMain || null);
+    const [mainId, setMainId] = useState<string | null>(safeData.refMainId || null);
+    const [mainType, setMainType] = useState<'image' | 'video'>(safeData.refMainType || 'image');
 
     // Ref 2 (Slot 2 - Style)
-    const [stylePreview, setStylePreview] = useState<string | null>(initialData.refStyle || null);
-    const [styleId, setStyleId] = useState<string | null>(initialData.refStyleId || null);
-    const [styleType, setStyleType] = useState<'image' | 'video'>(initialData.refStyleType || 'image');
+    const [stylePreview, setStylePreview] = useState<string | null>(safeData.refStyle || null);
+    const [styleId, setStyleId] = useState<string | null>(safeData.refStyleId || null);
+    const [styleType, setStyleType] = useState<'image' | 'video'>(safeData.refStyleType || 'image');
 
     // Ref 3 (Slot 3 - Reference / Creative Model)
-    const [referencePreview, setReferencePreview] = useState<string | null>(initialData.refReference || null);
-    const [referenceId, setReferenceId] = useState<string | null>(initialData.refReferenceId || null);
-    const [referenceType, setReferenceType] = useState<'image' | 'video'>(initialData.refReferenceType || 'image');
-    const [referenceRole, setReferenceRole] = useState<ReferenceRole>(initialData.refReferenceRole || ReferenceRole.FREE);
+    const [referencePreview, setReferencePreview] = useState<string | null>(safeData.refReference || null);
+    const [referenceId, setReferenceId] = useState<string | null>(safeData.refReferenceId || null);
+    const [referenceType, setReferenceType] = useState<'image' | 'video'>(safeData.refReferenceType || 'image');
+    const [referenceRole, setReferenceRole] = useState<ReferenceRole>(safeData.refReferenceRole || ReferenceRole.FREE);
 
     // Advanced Refs
-    const [extraRefs, setExtraRefs] = useState<ExtraReference[]>(initialData.extraRefs || []);
+    const [extraRefs, setExtraRefs] = useState<ExtraReference[]>(safeData.extraRefs || []);
 
     // NEW: Track Active Slot for Paste
     const [activeSlot, setActiveSlot] = useState<'main' | 'style' | 'reference' | 'extra' | null>(null);
