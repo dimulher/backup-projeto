@@ -1023,7 +1023,7 @@ const App: React.FC = () => {
           onDuplicate={duplicateBlock}
           credits={credits}
           deductCredits={deductCredits}
-          onGenerated={(type, url, prompt, details) => onGenerated(type, url, prompt, details, block.id)}
+          onGenerated={(type, url, prompt, details, dbId) => onGenerated(type, url, prompt, details, block.id, dbId)}
           onPositionChange={(x, y) => updateBlockPosition(block.id, x, y)}
           onRemove={() => removeBlock(block.id)}
           onUpload={handleManualUpload}

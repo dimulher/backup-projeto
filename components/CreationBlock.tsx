@@ -194,6 +194,7 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
     const [tempPrompt, setTempPrompt] = useState('');
 
     const [isGenerating, setIsGenerating] = useState(false);
+    const isGeneratingRef = useRef(false);
     const [isProcessingUpload, setIsProcessingUpload] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [loadingStep, setLoadingStep] = useState('');
@@ -560,7 +561,8 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
     };
 
     const handleGenerate = async () => {
-        if (isGenerating || isProcessingUpload) return;
+        if (isGeneratingRef.current || isGenerating || isProcessingUpload) return;
+        isGeneratingRef.current = true;
 
         if (isVideoMode && !FEATURE_FLAGS.VIDEO_MODELS_ENABLED) {
             setErrorMsg("Modelos de vídeo estão temporariamente desativados. Em breve serão liberados.");
@@ -686,6 +688,7 @@ const CreationBlock: React.FC<CreationBlockProps> = ({
             setErrorMsg(err.message || "Erro desconhecido. Tente novamente.");
         } finally {
             setIsGenerating(false);
+            isGeneratingRef.current = false;
             setLoadingStep('');
         }
     };
